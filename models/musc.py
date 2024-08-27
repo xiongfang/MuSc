@@ -11,6 +11,8 @@ import datasets.visa as visa
 from datasets.visa import _CLASSNAMES as _CLASSNAMES_visa
 import datasets.btad as btad
 from datasets.btad import _CLASSNAMES as _CLASSNAMES_btad
+import datasets.my_dataset as my_dt
+from datasets.my_dataset import _CLASSNAMES as _CLASSNAMES_my_dt
 
 import models.backbone.open_clip as open_clip
 import models.backbone._backbones as _backbones
@@ -49,6 +51,8 @@ class MuSc():
                     self.categories = _CLASSNAMES_mvtec_ad
                 elif self.dataset == 'btad':
                     self.categories = _CLASSNAMES_btad
+                else:
+                    self.categories = _CLASSNAMES_my_dt
             else:
                 self.categories = [self.categories]
 
@@ -90,6 +94,10 @@ class MuSc():
             test_dataset = btad.BTADDataset(source=self.path, split=btad.DatasetSplit.TEST,
                                             classname=category, resize=self.image_size, imagesize=self.image_size, clip_transformer=self.preprocess,
                                                 divide_num=divide_num, divide_iter=divide_iter, random_seed=self.seed)
+        else:
+            test_dataset = my_dt.MyDataset(source=self.path,
+                                            classname=category, resize=self.image_size, imagesize=self.image_size, clip_transformer=self.preprocess,
+                                                divide_num=divide_num, divide_iter=divide_iter, random_seed=self.seed)
         return test_dataset
 
 
@@ -99,8 +107,11 @@ class MuSc():
         if self.vis_type == 'single_norm':
             # normalized per image
             for i, path in enumerate(image_path_list):
-                anomaly_type = path.split('/')[-2]
-                img_name = path.split('/')[-1]
+                # anomaly_type = path.split('/')[-2]
+                # img_name = path.split('/')[-1]
+                path_parts = os.path.normpath(path).split(os.sep)
+                anomaly_type = path_parts[-2]
+                img_name = path_parts[-1]
                 if anomaly_type not in ['good', 'Normal', 'ok'] and gt_list[i] != 0:
                     save_path = os.path.join(self.output_dir, category, anomaly_type)
                     os.makedirs(save_path, exist_ok=True)
@@ -246,6 +257,7 @@ class MuSc():
         else:
             k_score = [1, 2, 3]
         scores_cls = RsCIN(ac_score, class_tokens, k_list=k_score)
+
 
         print('computing metrics...')
         pr_sp = np.array(scores_cls)
