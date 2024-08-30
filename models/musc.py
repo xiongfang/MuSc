@@ -1,5 +1,6 @@
 import os
 import sys
+from tkinter import SEL
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -25,6 +26,9 @@ from tqdm import tqdm
 import pickle
 import time
 import cv2
+import asyncio
+import mmap
+import struct
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -277,6 +281,50 @@ class MuSc():
     
         return image_metric, pixel_metric
 
+    
+    async def do_task(self):
+        print("start do task..")
+        while(True):
+            with mmap.mmap(-1, 3480*2160*3+4+4+2, "MySharedMemory") as mm:
+                mm.seek(0)
+                task_id = mm.read_byte()
+                if(task_id==0):
+                    await asyncio.sleep(0.02)
+                elif(task_id == -1):
+                    break
+                elif(task_id==1):
+                    print('do'+task_id);
+                    mm.seek(0)
+                    mm.write_byte(0)
+                    mm.seek(2)
+                    width = struct.unpack('i',mm.read(4))[0]
+                    mm.seek(6)
+                    height = struct.unpack('i',mm.read(4))[0]
+                    mm.seek(10)
+                    data = mm.read(width*height*3)
+                    array =  np.frombuffer(data,'byte')
+                    image = array.reshape(width,height,3)
+                    self.do_main(image)
+                    mm.seek(1)
+                    mm.write_byte(1)
+                else:
+                    print('do'+task_id);
+                    mm.seek(0)
+                    mm.write_byte(0)
+                    mm.seek(10)
+                    path = mm.readline().decode()
+                    self.init_features(path)
+                    mm.seek(1)
+                    mm.write_byte(1)
+                    
+        print("finish do task")
+                
+
+    def init_features(self,path):
+        pass
+    def do_main(self,image):
+        cv2.imshow('show',image)
+        cv2.waitKey()
 
     def main(self):
         auroc_sp_ls = []

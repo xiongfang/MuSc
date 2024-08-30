@@ -1,6 +1,9 @@
 import argparse
 import os
 import sys
+import asyncio
+
+
 sys.path.append(os.getcwd())
 from models.musc import MuSc
 from utils.load_config import load_yaml
@@ -84,7 +87,7 @@ if __name__ == "__main__":
     print(cfg)
     seed = 42
     model = MuSc(cfg, seed=seed)
-    model.main()
+    asyncio.run(model.do_task())
 
 
 
